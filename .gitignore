@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data (Generated)
+data/*.csv
+data/*.parquet
+
+# Models (Generated Artifacts)
+src/models/*.pkl
+src/models/*.joblib
+
+# Environment
+.env
+venv/
+env/
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
