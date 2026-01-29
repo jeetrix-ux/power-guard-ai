@@ -11,7 +11,8 @@ This project demonstrates **Systems Thinking** by combining behavioral physics s
 To replace traditional threshold-based monitoring with a data-driven approach that can:
 1.  **Detect Anomalies** in multivariate sensor streams (Voltage, Current, Temperature, Ripple).
 2.  **Classify Faults** specifically (e.g., distinguishing between Thermal Runaway vs. Capacitor drying).
-3.  **Operate in Real-Time** using a streaming architecture.
+3.  **Predict Remaining Useful Life (RUL)**: Estimating how many operational hours are left before failure.
+4.  **Operate in Real-Time** using a streaming architecture.
 
 ## 🏗 Architecture
 
@@ -23,13 +24,15 @@ Located in `src/simulation/`, the `BuckConverterSimulator` implements a differen
 ### 2. The ML Pipeline
 Located in `src/pipeline/` and `src/models/`.
 -   **Feature Engineering**: Rolling window statistics (Mean, Std, Skew) + Frequency-domain proxies (Ripple magnitude).
--   **Stage 1: Anomaly Detection**: `IsolationForest` trained *only* on healthy data to detect unknown deviations.
--   **Stage 2: Fault Classification**: `XGBoost` Classifier trained on simulated failure modes to identify the root cause.
+-   **Stage 1: Anomaly Detection**: `IsolationForest` trained *only* on healthy data.
+-   **Stage 2: Fault Classification**: `XGBoost` Classifier for root-cause analysis.
+-   **Stage 3: Prognostics (RUL)**: `RandomForestRegressor` trained on run-to-failure simulations to predict remaining life cycles.
 
 ### 3. Dashboard
 Located in `src/dashboard/`.
 -   A **Streamlit** application serving as the HMI (Human Machine Interface).
 -   Allows real-time "Health Status" monitoring and manual fault injection to test the AI's response.
+-   **RUL Gauge**: Displays estimated remaining life in real-time.
 
 ## 🚀 Getting Started
 
@@ -40,19 +43,20 @@ Located in `src/dashboard/`.
 ### Installation
 ```bash
 git clone <your-repo-url>
-cd predictive-maintenance-system
+cd power-guard-ai
 pip install -r requirements.txt
 ```
 
 ### Running the System
 1.  **Generate Data & Train Models**:
-    (Pre-trained models are NOT committed to keep the repo light)
     ```bash
-    # Generate 12,000+ samples of physics-based data
+    # Generate Physics Data (Healthy, Faulty, and Run-to-Failure)
     python scripts/generate_datasets.py
+    python scripts/generate_rul_data.py
     
-    # Train the Anomaly Detector and Classifier
+    # Train Models
     python src/models/train.py
+    python src/models/train_rul.py
     ```
 
 2.  **Launch the Dashboard**:
@@ -74,11 +78,6 @@ pip install -r requirements.txt
 ├── requirements.txt
 └── README.md
 ```
-
-## 🛠 Future Improvements
--   [ ] **RUL Estimation**: Implement LSTM/GRU for Remaining Useful Life prediction.
--   [ ] **Hardware Integration**: Adapter to ingest data from LabView/Oscilloscopes.
--   [ ] **Edge Deployment**: Quantize models (TFLite) for microcontroller deployment.
 
 ## 👨‍💻 Author
 Designed as a demonstration of intersectional skills in **Electrical Engineering** and **Machine Learning**.

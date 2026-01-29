@@ -11,6 +11,7 @@ class HealthMonitor:
         self.anomaly_detector = joblib.load(os.path.join(model_dir, 'anomaly_detector.pkl'))
         self.classifier = joblib.load(os.path.join(model_dir, 'fault_classifier.pkl'))
         self.label_encoder = joblib.load(os.path.join(model_dir, 'label_encoder.pkl'))
+        self.rul_regressor = joblib.load(os.path.join(model_dir, 'rul_regressor.pkl'))
         
         # Buffer for rolling features
         # We need at least 'window_size' samples. The pipeline uses window=10.
@@ -59,11 +60,21 @@ class HealthMonitor:
             anomaly_score = self.anomaly_detector.decision_function(X_latest)[0]
             
             if is_normal:
+                # Calculate RUL even if healthy (Prognostics)
+                rul_feats = pd.DataFrame([{
+                    'V_out_mean': df_buffer['V_out'].mean(),
+                    'V_out_std': df_buffer['V_out'].std(),
+                    'V_ripple_pkpk_mean': df_buffer['V_ripple_pkpk'].mean(),
+                    'Temp_heatsink_mean': df_buffer['Temp_heatsink'].mean()
+                }])
+                predicted_rul = self.rul_regressor.predict(rul_feats)[0]
+                
                 return {
                     "status": "Healthy",
                     "color": "green",
                     "anomaly_score": round(anomaly_score, 3),
-                    "fault_type": "None"
+                    "fault_type": "None",
+                    "RUL_prediction": round(predicted_rul, 1)
                 }
             else:
                 # 2. Fault Classification
@@ -71,12 +82,29 @@ class HealthMonitor:
                 fault_name = self.label_encoder.inverse_transform([fault_idx])[0]
                 proba = np.max(self.classifier.predict_proba(X_latest))
                 
+                
+                # 3. RUL Estimator (Run always or only if healthy?)
+                # We developed RUL model on "Aggregated Cycle Data".
+                # We need to compute [V_out_mean, V_out_std, V_ripple_pkpk_mean, Temp_heatsink_mean]
+                # from the buffer.
+                
+                # Compute features matching training time
+                rul_feats = pd.DataFrame([{
+                    'V_out_mean': df_buffer['V_out'].mean(),
+                    'V_out_std': df_buffer['V_out'].std(),
+                    'V_ripple_pkpk_mean': df_buffer['V_ripple_pkpk'].mean(),
+                    'Temp_heatsink_mean': df_buffer['Temp_heatsink'].mean()
+                }])
+                
+                predicted_rul = self.rul_regressor.predict(rul_feats)[0]
+                
                 return {
                     "status": "Fault Detected",
                     "color": "red",
                     "anomaly_score": round(anomaly_score, 3),
                     "fault_type": fault_name,
-                    "confidence": round(proba, 2)
+                    "confidence": round(proba, 2),
+                    "RUL_prediction": round(predicted_rul, 1)
                 }
                 
         except Exception as e:

@@ -155,18 +155,22 @@ while st.session_state.simulation_running:
     # Render UI
     with placeholder.container():
         # Top Metrics
-        m1, m2, m3, m4 = st.columns(4)
+        m1, m2, m3, m4, m5 = st.columns(5)
         m1.markdown(f"<div class='metric-card'><div class='metric-value'>{latest_data['V_out']:.2f}V</div><div class='metric-label'>Output</div></div>", unsafe_allow_html=True)
         m2.markdown(f"<div class='metric-card'><div class='metric-value'>{latest_data['I_load']:.2f}A</div><div class='metric-label'>Current</div></div>", unsafe_allow_html=True)
         m3.markdown(f"<div class='metric-card'><div class='metric-value'>{latest_data['Temp_heatsink']:.1f}°C</div><div class='metric-label'>Temp</div></div>", unsafe_allow_html=True)
         
+        # RUL Metric
+        rul_val = ml_result.get('RUL_prediction', 'N/A')
+        m4.markdown(f"<div class='metric-card'><div class='metric-value'>{rul_val}</div><div class='metric-label'>Est. Life (Hrs)</div></div>", unsafe_allow_html=True)
+
         # Health Status
         status_color = "status-healthy" if ml_result['color'] == 'green' else "status-fault"
         status_text = ml_result['status']
         if ml_result.get('fault_type') and ml_result['fault_type'] != 'None':
             status_text += f": {ml_result['fault_type']}"
             
-        m4.markdown(f"<div class='{status_color}'>{status_text} <br> <small>{ml_result.get('confidence', '')}</small></div>", unsafe_allow_html=True)
+        m5.markdown(f"<div class='{status_color}'>{status_text} <br> <small>{ml_result.get('confidence', '')}</small></div>", unsafe_allow_html=True)
 
         # Charts
         chart_col1, chart_col2 = st.columns(2)
